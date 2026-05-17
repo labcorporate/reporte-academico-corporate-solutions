@@ -403,19 +403,21 @@ input[type="file"]{padding:9px;font-size:12px;}
   margin-top:36px;
   padding-top:22px;
   border-top:1px solid rgba(255,255,255,.30);
-  display:grid;
-  grid-template-columns:1fr 1fr;
+  display:flex;
+  flex-wrap:wrap;
   max-width:none;
 }
 .cover-meta > div{
   padding:0 22px;
   border-left:1px solid rgba(255,255,255,.18);
   min-width:0;
+  flex:1 1 0;
 }
 .cover-meta > div:first-child{
   padding-left:0;
   border-left:none;
 }
+.cover-meta:empty{display:none;}
 .cover-meta .m-label{
   font-size:9px;
   letter-spacing:.28em;
@@ -508,10 +510,12 @@ input[type="file"]{padding:9px;font-size:12px;}
 
 /* Info cards */
 .info-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
+  display:flex;
+  flex-wrap:wrap;
   gap:10px;
 }
+.info-grid .info-card{flex:1 1 0;min-width:140px;}
+.info-grid:empty{display:none;}
 .info-card{
   background:var(--cream);
   border:1px solid var(--line);
@@ -743,8 +747,10 @@ body.no-images.no-resources .page-3{display:none;}
       <h3>Identificación</h3>
       <div class="stack">
         <input id="programa" placeholder="Nombre del programa">
+        <input id="empresa" placeholder="Empresa">
         <input id="tema" placeholder="Tema / Asignatura">
-        <input id="profesor" placeholder="Profesor/a">
+        <input id="profesor" placeholder="Docente">
+        <input id="grupo" placeholder="Grupo">
       </div>
     </div>
 
@@ -816,16 +822,7 @@ body.no-images.no-resources .page-3{display:none;}
         <div class="cover-kicker">Reporte Académico</div>
         <h1 class="cover-title" id="cover-programa">Programa Especializado</h1>
 
-        <div class="cover-meta">
-          <div>
-            <div class="m-label">Tema</div>
-            <div class="m-value" id="cover-tema">Asignatura</div>
-          </div>
-          <div>
-            <div class="m-label">Profesor/a</div>
-            <div class="m-value" id="cover-profesor">Docente Responsable</div>
-          </div>
-        </div>
+        <div class="cover-meta" id="cover-meta"></div>
       </div>
 
       <div class="cover-foot">
@@ -855,20 +852,7 @@ body.no-images.no-resources .page-3{display:none;}
           <div class="section-num">01</div>
           <h2 class="section-title">Información académica</h2>
         </div>
-        <div class="info-grid">
-          <div class="info-card">
-            <div class="label">Programa</div>
-            <div class="value" id="prev-programa">Programa</div>
-          </div>
-          <div class="info-card">
-            <div class="label">Tema</div>
-            <div class="value" id="prev-tema">Tema</div>
-          </div>
-          <div class="info-card">
-            <div class="label">Profesor/a</div>
-            <div class="value" id="prev-profesor">Profesor/a</div>
-          </div>
-        </div>
+        <div class="info-grid" id="info-grid"></div>
       </div>
 
       <div class="section">
@@ -968,7 +952,7 @@ body.no-images.no-resources .page-3{display:none;}
 </div>
 
 <script>
-const ids = ['programa','tema','profesor','general','docente','aa','encuesta','asistencia','material'];
+const ids = ['programa','empresa','tema','profesor','grupo','general','docente','aa','encuesta','asistencia','material'];
 ids.forEach(id => {
   document.getElementById(id).addEventListener('input', updateAll);
 });
@@ -996,16 +980,40 @@ let chart;
 
 function updateAll(){
   const programa = document.getElementById('programa').value || 'Programa Especializado';
-  const tema = document.getElementById('tema').value || 'Asignatura';
-  const profesor = document.getElementById('profesor').value || 'Docente Responsable';
+  const empresa = document.getElementById('empresa').value.trim();
+  const tema = document.getElementById('tema').value.trim();
+  const profesor = document.getElementById('profesor').value.trim();
+  const grupo = document.getElementById('grupo').value.trim();
 
   document.getElementById('cover-programa').innerText = programa;
-  document.getElementById('cover-tema').innerText = tema;
-  document.getElementById('cover-profesor').innerText = profesor;
 
-  document.getElementById('prev-programa').innerText = programa;
-  document.getElementById('prev-tema').innerText = tema;
-  document.getElementById('prev-profesor').innerText = profesor;
+  // Build meta items dynamically (only filled fields, in order)
+  const metaItems = [
+    ['Empresa', empresa],
+    ['Tema', tema],
+    ['Docente', profesor],
+    ['Grupo', grupo]
+  ].filter(it => it[1]);
+
+  // Cover meta (white text)
+  const coverMeta = document.getElementById('cover-meta');
+  coverMeta.innerHTML = '';
+  metaItems.forEach(it => {
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="m-label">${it[0]}</div><div class="m-value">${it[1]}</div>`;
+    coverMeta.appendChild(div);
+  });
+
+  // Interior info-grid (always include Programa first, then filled fields)
+  const infoItems = [['Programa', programa], ...metaItems];
+  const infoGrid = document.getElementById('info-grid');
+  infoGrid.innerHTML = '';
+  infoItems.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'info-card';
+    div.innerHTML = `<div class="label">${it[0]}</div><div class="value">${it[1]}</div>`;
+    infoGrid.appendChild(div);
+  });
 
   const modality = getModality();
   document.body.classList.toggle('modality-presencial', modality === 'presencial');
